@@ -313,7 +313,6 @@ export type DialogFormBodyProps = {
   isEditMode: boolean;
   isTaskStarted: boolean;
   initialDescription: string;
-  hasDescription: boolean;
   workspaceId: string | null;
   onJiraImport?: (ticket: JiraTicket) => void;
   onLinearImport?: (issue: LinearIssue) => void;
