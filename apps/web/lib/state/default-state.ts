@@ -6,6 +6,7 @@ import {
   defaultSessionRuntimeState,
   defaultUIState,
   defaultGitHubState,
+  defaultGitLabState,
   defaultJiraState,
   defaultLinearState,
   defaultOfficeState,
@@ -66,6 +67,7 @@ export const defaultState = {
   reviewWatches: defaultGitHubState.reviewWatches,
   issueWatches: defaultGitHubState.issueWatches,
   actionPresets: defaultGitHubState.actionPresets,
+  taskMRs: defaultGitLabState.taskMRs,
   jiraIssueWatches: defaultJiraState.jiraIssueWatches,
   linearIssueWatches: defaultLinearState.linearIssueWatches,
   office: defaultOfficeState.office,
@@ -154,6 +156,7 @@ export function mergeInitialState(initialState?: Partial<DefaultState>): Default
     reviewWatches: { ...defaultState.reviewWatches, ...initialState.reviewWatches },
     issueWatches: { ...defaultState.issueWatches, ...initialState.issueWatches },
     actionPresets: { ...defaultState.actionPresets, ...initialState.actionPresets },
+    taskMRs: { ...defaultState.taskMRs, ...initialState.taskMRs },
     jiraIssueWatches: { ...defaultState.jiraIssueWatches, ...initialState.jiraIssueWatches },
     linearIssueWatches: {
       ...defaultState.linearIssueWatches,
