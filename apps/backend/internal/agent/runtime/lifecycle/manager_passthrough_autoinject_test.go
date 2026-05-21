@@ -63,7 +63,7 @@ func TestAutoInject_disabled_does_nothing(t *testing.T) {
 	mgr := newTestManager()
 	runner := &fakePassthroughRunner{}
 
-	mgr.autoInjectInitialPromptWith(runner, newAutoInjectExecution("do a thing"), agents.PassthroughConfig{
+	mgr.autoInjectInitialPromptWith(context.Background(), runner, newAutoInjectExecution("do a thing"), agents.PassthroughConfig{
 		AutoInjectPrompt: false,
 		SubmitSequence:   "\r",
 	})
@@ -77,7 +77,7 @@ func TestAutoInject_skipped_when_PromptFlag_set(t *testing.T) {
 	mgr := newTestManager()
 	runner := &fakePassthroughRunner{}
 
-	mgr.autoInjectInitialPromptWith(runner, newAutoInjectExecution("do a thing"), agents.PassthroughConfig{
+	mgr.autoInjectInitialPromptWith(context.Background(), runner, newAutoInjectExecution("do a thing"), agents.PassthroughConfig{
 		AutoInjectPrompt: true,
 		SubmitSequence:   "\r",
 		PromptFlag:       agents.NewParam("--prompt", "{prompt}"),
@@ -92,7 +92,7 @@ func TestAutoInject_skipped_when_description_empty(t *testing.T) {
 	mgr := newTestManager()
 	runner := &fakePassthroughRunner{}
 
-	mgr.autoInjectInitialPromptWith(runner, newAutoInjectExecution(""), agents.PassthroughConfig{
+	mgr.autoInjectInitialPromptWith(context.Background(), runner, newAutoInjectExecution(""), agents.PassthroughConfig{
 		AutoInjectPrompt: true,
 		SubmitSequence:   "\r",
 	})
@@ -106,7 +106,7 @@ func TestAutoInject_writes_description_plus_submit(t *testing.T) {
 	mgr := newTestManager()
 	runner := &fakePassthroughRunner{}
 
-	mgr.autoInjectInitialPromptWith(runner, newAutoInjectExecution("hello world"), agents.PassthroughConfig{
+	mgr.autoInjectInitialPromptWith(context.Background(), runner, newAutoInjectExecution("hello world"), agents.PassthroughConfig{
 		AutoInjectPrompt: true,
 		SubmitSequence:   "\r",
 	})
@@ -132,7 +132,7 @@ func TestAutoInject_returns_when_wait_errors(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		mgr.autoInjectInitialPromptWith(runner, newAutoInjectExecution("hello"), agents.PassthroughConfig{
+		mgr.autoInjectInitialPromptWith(context.Background(), runner, newAutoInjectExecution("hello"), agents.PassthroughConfig{
 			AutoInjectPrompt: true,
 			SubmitSequence:   "\r",
 		})
@@ -156,7 +156,7 @@ func TestAutoInject_skipped_when_process_id_missing(t *testing.T) {
 	exec := newAutoInjectExecution("hello")
 	exec.PassthroughProcessID = ""
 
-	mgr.autoInjectInitialPromptWith(runner, exec, agents.PassthroughConfig{
+	mgr.autoInjectInitialPromptWith(context.Background(), runner, exec, agents.PassthroughConfig{
 		AutoInjectPrompt: true,
 		SubmitSequence:   "\r",
 	})

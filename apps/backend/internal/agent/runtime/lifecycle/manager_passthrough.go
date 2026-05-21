@@ -343,7 +343,7 @@ func (m *Manager) startPassthroughSession(ctx context.Context, execution *AgentE
 		go m.streamManager.connectWorkspaceStream(execution, nil)
 	}
 
-	go m.autoInjectInitialPrompt(execution, pt)
+	go m.autoInjectInitialPrompt(ctx, execution, pt)
 
 	return nil
 }
@@ -803,7 +803,7 @@ func (m *Manager) attemptResumeFallback(execution *AgentExecution, runner *proce
 	}
 
 	// Fallback path is a fresh session (no --resume) — re-inject the prompt.
-	go m.autoInjectInitialPrompt(execution, pt)
+	go m.autoInjectInitialPrompt(ctx, execution, pt)
 }
 
 // attemptPassthroughRestart announces the restart on the terminal, waits the
@@ -942,17 +942,22 @@ type passthroughRunner interface {
 // the agent is idle (ready for input). Opt-in per agent via PassthroughConfig.
 // Called from startPassthroughSession and attemptResumeFallback only — never
 // from ResumePassthroughSession (would duplicate the prompt in agent history).
-func (m *Manager) autoInjectInitialPrompt(execution *AgentExecution, pt agents.PassthroughConfig) {
+//
+// ctx is the launch-time context from the caller; we derive the
+// WaitForFirstIdle timeout from it (via context.WithoutCancel) so the wait
+// timeout survives request-scoped cancellation but still respects any
+// values propagated through the call chain.
+func (m *Manager) autoInjectInitialPrompt(ctx context.Context, execution *AgentExecution, pt agents.PassthroughConfig) {
 	runner := m.GetInteractiveRunner()
 	if runner == nil {
 		return
 	}
-	m.autoInjectInitialPromptWith(runner, execution, pt)
+	m.autoInjectInitialPromptWith(ctx, runner, execution, pt)
 }
 
 // autoInjectInitialPromptWith is the testable inner of autoInjectInitialPrompt,
 // taking a runner seam so unit tests can avoid spawning a real PTY.
-func (m *Manager) autoInjectInitialPromptWith(runner passthroughRunner, execution *AgentExecution, pt agents.PassthroughConfig) {
+func (m *Manager) autoInjectInitialPromptWith(ctx context.Context, runner passthroughRunner, execution *AgentExecution, pt agents.PassthroughConfig) {
 	if !pt.AutoInjectPrompt {
 		return
 	}
@@ -970,9 +975,9 @@ func (m *Manager) autoInjectInitialPromptWith(runner passthroughRunner, executio
 			zap.String("execution_id", execution.ID))
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	waitCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
 	defer cancel()
-	if err := runner.WaitForFirstIdle(ctx, processID); err != nil {
+	if err := runner.WaitForFirstIdle(waitCtx, processID); err != nil {
 		m.logger.Warn("autoInjectInitialPrompt timed out waiting for idle",
 			zap.String("execution_id", execution.ID),
 			zap.String("process_id", processID),

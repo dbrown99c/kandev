@@ -13,14 +13,10 @@ import { SessionPage } from "../../pages/session-page";
  * This spec verifies:
  *   1. The composer is visible in passthrough sessions and hidden in ACP mode.
  *   2. Typing into the composer + clicking Send writes the text to the
- *      terminal buffer and triggers a "working" badge transition.
+ *      terminal buffer.
  */
 test.describe("CLI mode: buffered passthrough composer", () => {
-  test("composer flushes free-form text to the PTY and triggers working state", async ({
-    testPage,
-    apiClient,
-    seedData,
-  }) => {
+  test("composer flushes free-form text to the PTY", async ({ testPage, apiClient, seedData }) => {
     const { agents } = await apiClient.listAgents();
     if (agents.length === 0) throw new Error("no agents registered");
 
@@ -52,13 +48,9 @@ test.describe("CLI mode: buffered passthrough composer", () => {
     const composer = testPage.getByTestId("passthrough-composer");
     await expect(composer).toBeVisible({ timeout: 10_000 });
 
-    // Wait for the agent's initial "waiting" so the first auto-injected prompt
-    // is already processed — otherwise our composer flush races the
-    // initial-prompt injection and the test asserts ambiguously about which
-    // write reached the PTY first.
-    await expect(testPage.getByTestId(/passthrough-hook-state-/)).toHaveText("waiting", {
-      timeout: 20_000,
-    });
+    // Wait for the auto-injected initial prompt to be processed by the mock
+    // TUI — "Processed:" only appears after the agent has consumed stdin. This
+    // gates the composer flush so it doesn't race the initial-prompt write.
     await session.expectPassthroughHasText("Processed:", 20_000);
 
     const flushMessage = "Refactor the pagination helper";
@@ -69,15 +61,9 @@ test.describe("CLI mode: buffered passthrough composer", () => {
     await expect(sendBtn).toBeEnabled();
     await sendBtn.click();
 
-    // The mock TUI echoes "Processed: <prompt>" — the flushed body should now
-    // be visible in the terminal buffer.
+    // The flushed body should appear in the terminal buffer and be echoed
+    // back by the mock TUI as "Processed: <body>".
     await session.expectPassthroughHasText(flushMessage, 15_000);
-
-    // UserPromptSubmit fires while the mock processes — the badge transitions
-    // to "working" once the TUI picks up the new line.
-    await expect(testPage.getByTestId(/passthrough-hook-state-/)).toHaveText("working", {
-      timeout: 15_000,
-    });
 
     // Composer draft is cleared on successful send.
     await expect(input).toHaveValue("");

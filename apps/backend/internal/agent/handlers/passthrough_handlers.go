@@ -68,14 +68,18 @@ func (h *PassthroughHandlers) wsAgentStdin(ctx context.Context, msg *ws.Message)
 
 	data := req.Data
 	if req.AppendSubmit {
+		// The composer relies on the backend appending the submit sequence so
+		// the agent's TUI treats the payload as a submitted line. Silently
+		// dropping the submit sequence on config-resolution failure would
+		// leave half-typed input in the PTY — fail the request instead.
 		pt, err := h.lifecycleMgr.ResolvePassthroughConfig(ctx, req.SessionID)
 		if err != nil {
-			h.logger.Warn("failed to resolve passthrough config for submit append; writing data without submit sequence",
+			h.logger.Error("failed to resolve passthrough config for submit append",
 				zap.String("session_id", req.SessionID),
 				zap.Error(err))
-		} else {
-			data += pt.SubmitSequence
+			return nil, fmt.Errorf("failed to resolve passthrough config for submit append: %w", err)
 		}
+		data += pt.SubmitSequence
 	}
 
 	// Write to the interactive runner's stdin

@@ -40,6 +40,7 @@ import { FilesPanel } from "./files-panel";
 import { TaskPlanPanel } from "./task-plan-panel";
 import { FileEditorPanel } from "./file-editor-panel";
 import { PassthroughTerminal } from "./passthrough-terminal";
+import { PassthroughComposer } from "./passthrough-composer";
 import { PanelRoot, PanelBody } from "./panel-primitives";
 import { ContextMenuTab } from "./tab-context-menu";
 import { ChangesTab } from "./changes-tab";
@@ -256,7 +257,12 @@ function ChatContent({ panelId, params }: { panelId: string; params: Record<stri
     return (
       <PanelRoot>
         <PanelBody padding={false} scroll={false}>
-          <PassthroughTerminal sessionId={sessionId} mode="agent" />
+          <div className="flex h-full flex-col">
+            <div className="flex-1 min-h-0">
+              <PassthroughTerminal sessionId={sessionId} mode="agent" />
+            </div>
+            <PassthroughComposer sessionId={sessionId} />
+          </div>
         </PanelBody>
       </PanelRoot>
     );

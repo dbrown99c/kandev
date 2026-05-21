@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   IconSend,
   IconX,
@@ -205,7 +205,118 @@ type PassthroughComposerProps = {
   className?: string;
 };
 
-// eslint-disable-next-line max-lines-per-function -- one component with header + body + actions; sub-extraction would obscure flow
+type CollapsedComposerProps = {
+  sessionId: string;
+  totalChips: number;
+  containerClass: string;
+  onExpand: () => void;
+};
+
+function CollapsedComposer({
+  sessionId,
+  totalChips,
+  containerClass,
+  onExpand,
+}: CollapsedComposerProps) {
+  return (
+    <div
+      data-testid="passthrough-composer"
+      data-session-id={sessionId}
+      data-collapsed="true"
+      className={`${containerClass} flex items-center gap-2 px-2 py-1`}
+    >
+      <button
+        type="button"
+        onClick={onExpand}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+      >
+        <IconChevronUp className="h-3.5 w-3.5" />
+        Write to agent
+      </button>
+      {totalChips > 0 && (
+        <span
+          data-testid="composer-collapsed-badge"
+          className="text-[10px] font-medium leading-none rounded bg-amber-500/10 text-amber-600 px-1.5 py-0.5"
+        >
+          {totalChips} comment{totalChips === 1 ? "" : "s"}
+        </span>
+      )}
+    </div>
+  );
+}
+
+type ExpandedComposerProps = {
+  sessionId: string;
+  buckets: ComposerBuckets;
+  draft: string;
+  canSubmit: boolean;
+  containerClass: string;
+  setDraft: (sessionId: string, draft: string) => void;
+  onSubmit: () => void;
+  onCollapse: () => void;
+  onDropChip: (id: string) => void;
+  onClearAllChips: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+};
+
+function ExpandedComposer({
+  sessionId,
+  buckets,
+  draft,
+  canSubmit,
+  containerClass,
+  setDraft,
+  onSubmit,
+  onCollapse,
+  onDropChip,
+  onClearAllChips,
+  onKeyDown,
+}: ExpandedComposerProps) {
+  return (
+    <div
+      data-testid="passthrough-composer"
+      data-session-id={sessionId}
+      data-collapsed="false"
+      className={`${containerClass} flex flex-col`}
+    >
+      <ComposerToolbar buckets={buckets} onDrop={onDropChip} onClearAll={onClearAllChips} />
+      <div className="flex items-end gap-1.5 px-2 py-1.5">
+        <textarea
+          data-testid="passthrough-composer-input"
+          value={draft}
+          onChange={(e) => setDraft(sessionId, e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Write to the agent. Enter sends, Shift+Enter for a newline."
+          rows={2}
+          className="flex-1 resize-y min-h-[44px] max-h-[200px] text-sm bg-muted/30 border border-border/50 rounded px-2 py-1.5 outline-none focus:border-border"
+        />
+        <div className="flex flex-col items-stretch gap-1">
+          <Button
+            type="button"
+            size="sm"
+            data-testid="passthrough-composer-send"
+            disabled={!canSubmit}
+            onClick={onSubmit}
+            className="h-7 px-2 gap-1 cursor-pointer"
+          >
+            <IconSend className="h-3.5 w-3.5" />
+            Send
+          </Button>
+          <button
+            type="button"
+            data-testid="passthrough-composer-collapse"
+            onClick={onCollapse}
+            className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Collapse"
+          >
+            <IconChevronDown className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PassthroughComposer({ sessionId, className }: PassthroughComposerProps) {
   const pendingAll = usePendingComments();
   const buckets = useMemo(() => bucketComments(pendingAll, sessionId), [pendingAll, sessionId]);
@@ -222,8 +333,6 @@ export function PassthroughComposer({ sessionId, className }: PassthroughCompose
   const clearComposer = useAppStore((s) => s.clearPassthroughComposer);
   const removeFromPending = useCommentsStore((s) => s.removeFromPending);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const handleClear = useCallback(() => {
     if (!sessionId) return;
     clearComposer(sessionId);
@@ -231,12 +340,7 @@ export function PassthroughComposer({ sessionId, className }: PassthroughCompose
 
   const { handleSubmit, isSending } = useComposerSubmit(sessionId, buckets, draft, handleClear);
 
-  const handleDropChip = useCallback(
-    (id: string) => {
-      removeFromPending(id);
-    },
-    [removeFromPending],
-  );
+  const handleDropChip = useCallback((id: string) => removeFromPending(id), [removeFromPending]);
 
   const handleClearAllChips = useCallback(() => {
     for (const c of [...buckets.diff, ...buckets.plan, ...buckets.pr]) {
@@ -246,9 +350,8 @@ export function PassthroughComposer({ sessionId, className }: PassthroughCompose
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key !== "Enter") return;
-      // Shift+Enter inserts a newline; bare Enter and Cmd/Ctrl+Enter submit.
-      if (e.shiftKey) return;
+      // Bare Enter (and Cmd/Ctrl+Enter) submit; Shift+Enter falls through to a newline.
+      if (e.key !== "Enter" || e.shiftKey) return;
       e.preventDefault();
       void handleSubmit();
     },
@@ -262,72 +365,28 @@ export function PassthroughComposer({ sessionId, className }: PassthroughCompose
 
   if (collapsed) {
     return (
-      <div
-        data-testid="passthrough-composer"
-        data-collapsed="true"
-        className={`${containerClass} flex items-center gap-2 px-2 py-1`}
-      >
-        <button
-          type="button"
-          onClick={() => setCollapsed(sessionId, false)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-        >
-          <IconChevronUp className="h-3.5 w-3.5" />
-          Write to agent
-        </button>
-        {totalChips > 0 && (
-          <span
-            data-testid="composer-collapsed-badge"
-            className="text-[10px] font-medium leading-none rounded bg-amber-500/10 text-amber-600 px-1.5 py-0.5"
-          >
-            {totalChips} comment{totalChips === 1 ? "" : "s"}
-          </span>
-        )}
-      </div>
+      <CollapsedComposer
+        sessionId={sessionId}
+        totalChips={totalChips}
+        containerClass={containerClass}
+        onExpand={() => setCollapsed(sessionId, false)}
+      />
     );
   }
 
   return (
-    <div
-      data-testid="passthrough-composer"
-      data-collapsed="false"
-      className={`${containerClass} flex flex-col`}
-    >
-      <ComposerToolbar buckets={buckets} onDrop={handleDropChip} onClearAll={handleClearAllChips} />
-      <div className="flex items-end gap-1.5 px-2 py-1.5">
-        <textarea
-          ref={textareaRef}
-          data-testid="passthrough-composer-input"
-          value={draft}
-          onChange={(e) => setDraft(sessionId, e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Write to the agent. Enter sends, Shift+Enter for a newline."
-          rows={2}
-          className="flex-1 resize-y min-h-[44px] max-h-[200px] text-sm bg-muted/30 border border-border/50 rounded px-2 py-1.5 outline-none focus:border-border"
-        />
-        <div className="flex flex-col items-stretch gap-1">
-          <Button
-            type="button"
-            size="sm"
-            data-testid="passthrough-composer-send"
-            disabled={!canSubmit}
-            onClick={() => void handleSubmit()}
-            className="h-7 px-2 gap-1 cursor-pointer"
-          >
-            <IconSend className="h-3.5 w-3.5" />
-            Send
-          </Button>
-          <button
-            type="button"
-            data-testid="passthrough-composer-collapse"
-            onClick={() => setCollapsed(sessionId, true)}
-            className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-            title="Collapse"
-          >
-            <IconChevronDown className="h-3 w-3" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <ExpandedComposer
+      sessionId={sessionId}
+      buckets={buckets}
+      draft={draft}
+      canSubmit={canSubmit}
+      containerClass={containerClass}
+      setDraft={setDraft}
+      onSubmit={() => void handleSubmit()}
+      onCollapse={() => setCollapsed(sessionId, true)}
+      onDropChip={handleDropChip}
+      onClearAllChips={handleClearAllChips}
+      onKeyDown={handleKeyDown}
+    />
   );
 }

@@ -308,3 +308,67 @@ describe("reorderSidebarViews", () => {
     expect(updateUserSettings).not.toHaveBeenCalled();
   });
 });
+
+describe("passthroughComposer", () => {
+  const SESSION_A = "session-a";
+  const SESSION_B = "session-b";
+
+  it("starts with an empty bySessionId map", () => {
+    const store = makeStore();
+    expect(store.getState().passthroughComposer.bySessionId).toEqual({});
+  });
+
+  it("setPassthroughComposerDraft lazy-creates the session and stores text", () => {
+    const store = makeStore();
+    store.getState().setPassthroughComposerDraft(SESSION_A, "hello world");
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_A]).toEqual({
+      draft: "hello world",
+      collapsed: false,
+    });
+  });
+
+  it("setPassthroughComposerCollapsed lazy-creates the session and flips the flag", () => {
+    const store = makeStore();
+    store.getState().setPassthroughComposerCollapsed(SESSION_A, true);
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_A]).toEqual({
+      draft: "",
+      collapsed: true,
+    });
+  });
+
+  it("multiple updates to the same session preserve other fields", () => {
+    const store = makeStore();
+    store.getState().setPassthroughComposerDraft(SESSION_A, "draft");
+    store.getState().setPassthroughComposerCollapsed(SESSION_A, true);
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_A]).toEqual({
+      draft: "draft",
+      collapsed: true,
+    });
+  });
+
+  it("isolates sessions — touching A does not affect B", () => {
+    const store = makeStore();
+    store.getState().setPassthroughComposerDraft(SESSION_A, "for A");
+    store.getState().setPassthroughComposerDraft(SESSION_B, "for B");
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_A].draft).toBe("for A");
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_B].draft).toBe("for B");
+  });
+
+  it("clearPassthroughComposer removes only the targeted session", () => {
+    const store = makeStore();
+    store.getState().setPassthroughComposerDraft(SESSION_A, "for A");
+    store.getState().setPassthroughComposerDraft(SESSION_B, "for B");
+    store.getState().clearPassthroughComposer(SESSION_A);
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_A]).toBeUndefined();
+    expect(store.getState().passthroughComposer.bySessionId[SESSION_B]).toEqual({
+      draft: "for B",
+      collapsed: false,
+    });
+  });
+
+  it("clearPassthroughComposer on an unknown session is a no-op", () => {
+    const store = makeStore();
+    store.getState().clearPassthroughComposer(SESSION_A);
+    expect(store.getState().passthroughComposer.bySessionId).toEqual({});
+  });
+});
