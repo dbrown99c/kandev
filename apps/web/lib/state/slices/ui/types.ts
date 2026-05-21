@@ -101,6 +101,17 @@ export type BottomTerminalState = {
   pendingCommand: string | null;
 };
 
+export type PassthroughComposerSession = {
+  /** In-progress draft text, kept across tab focus / panel resize. Not persisted. */
+  draft: string;
+  /** When true the composer is collapsed to a one-line strip. */
+  collapsed: boolean;
+};
+
+export type PassthroughComposerState = {
+  bySessionId: Record<string, PassthroughComposerSession>;
+};
+
 export type SidebarTaskPrefsState = {
   /** Pinned task IDs in display order (first ID renders highest within its group). */
   pinnedTaskIds: string[];
@@ -128,6 +139,7 @@ export type UISliceState = {
   configChat: ConfigChatState;
   sessionFailureNotification: SessionFailureNotification | null;
   bottomTerminal: BottomTerminalState;
+  passthroughComposer: PassthroughComposerState;
   sidebarViews: SidebarSliceState;
   /** Parent task IDs whose subtasks are collapsed in the sidebar. Tab-scoped (sessionStorage). */
   collapsedSubtaskParents: string[];
@@ -171,6 +183,9 @@ export type UISliceActions = {
   toggleBottomTerminal: () => void;
   openBottomTerminalWithCommand: (command: string) => void;
   clearBottomTerminalCommand: () => void;
+  setPassthroughComposerDraft: (sessionId: string, draft: string) => void;
+  setPassthroughComposerCollapsed: (sessionId: string, collapsed: boolean) => void;
+  clearPassthroughComposer: (sessionId: string) => void;
   setSidebarActiveView: (viewId: string) => void;
   updateSidebarDraft: (
     patch: Partial<{ filters: FilterClause[]; sort: SortSpec; group: GroupKey }>,

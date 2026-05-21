@@ -118,6 +118,7 @@ export const defaultUIState: UISliceState = {
   configChat: { isOpen: false, sessions: [], activeSessionId: null, workspaceId: null },
   sessionFailureNotification: null,
   bottomTerminal: { isOpen: false, pendingCommand: null },
+  passthroughComposer: { bySessionId: {} },
   sidebarViews: loadSidebarState(),
   collapsedSubtaskParents: [],
   kanbanPreviewedTaskId: null,
@@ -193,6 +194,30 @@ function buildMobileActions(set: ImmerSet) {
     setMobileSessionTaskSwitcherOpen: (open: boolean) =>
       set((draft) => {
         draft.mobileSession.isTaskSwitcherOpen = open;
+      }),
+  };
+}
+
+function ensureComposerSession(composer: UISliceState["passthroughComposer"], sessionId: string) {
+  if (!composer.bySessionId[sessionId]) {
+    composer.bySessionId[sessionId] = { draft: "", collapsed: false };
+  }
+  return composer.bySessionId[sessionId];
+}
+
+function buildPassthroughComposerActions(set: ImmerSet) {
+  return {
+    setPassthroughComposerDraft: (sessionId: string, draft: string) =>
+      set((s) => {
+        ensureComposerSession(s.passthroughComposer, sessionId).draft = draft;
+      }),
+    setPassthroughComposerCollapsed: (sessionId: string, collapsed: boolean) =>
+      set((s) => {
+        ensureComposerSession(s.passthroughComposer, sessionId).collapsed = collapsed;
+      }),
+    clearPassthroughComposer: (sessionId: string) =>
+      set((s) => {
+        delete s.passthroughComposer.bySessionId[sessionId];
       }),
   };
 }
@@ -530,6 +555,7 @@ export const createUISlice: StateCreator<UISlice, [["zustand/immer", never]], []
   ...buildPreviewActions(set),
   ...buildMobileActions(set),
   ...buildBottomTerminalActions(set),
+  ...buildPassthroughComposerActions(set),
   ...buildConfigChatActions(set),
   ...buildSidebarViewActions(set, get),
   ...buildSidebarTaskPrefsActions(set),

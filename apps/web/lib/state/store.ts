@@ -210,6 +210,7 @@ export type AppState = {
   configChat: (typeof defaultUIState)["configChat"];
   sessionFailureNotification: (typeof defaultUIState)["sessionFailureNotification"];
   bottomTerminal: (typeof defaultUIState)["bottomTerminal"];
+  passthroughComposer: (typeof defaultUIState)["passthroughComposer"];
   sidebarViews: (typeof defaultUIState)["sidebarViews"];
   collapsedSubtaskParents: (typeof defaultUIState)["collapsedSubtaskParents"];
   kanbanPreviewedTaskId: (typeof defaultUIState)["kanbanPreviewedTaskId"];
@@ -361,6 +362,9 @@ export type AppState = {
   toggleBottomTerminal: () => void;
   openBottomTerminalWithCommand: (command: string) => void;
   clearBottomTerminalCommand: () => void;
+  setPassthroughComposerDraft: (sessionId: string, draft: string) => void;
+  setPassthroughComposerCollapsed: (sessionId: string, collapsed: boolean) => void;
+  clearPassthroughComposer: (sessionId: string) => void;
   setMessages: (
     sessionId: string,
     messages: Message[],
@@ -622,6 +626,7 @@ export function createAppStore(initialState?: Partial<AppState>) {
       quickChat: merged.quickChat,
       sessionFailureNotification: merged.sessionFailureNotification,
       bottomTerminal: merged.bottomTerminal,
+      passthroughComposer: merged.passthroughComposer,
       // Note: collapsedSubtaskParents is intentionally not overridden here —
       // createUISlice hydrates it from sessionStorage and we want that to win.
       // Add hydrate method

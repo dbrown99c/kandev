@@ -82,6 +82,7 @@ export const defaultState = {
   quickChat: defaultUIState.quickChat,
   sessionFailureNotification: defaultUIState.sessionFailureNotification,
   bottomTerminal: defaultUIState.bottomTerminal,
+  passthroughComposer: defaultUIState.passthroughComposer,
   sidebarViews: defaultUIState.sidebarViews,
   collapsedSubtaskParents: defaultUIState.collapsedSubtaskParents,
   kanbanPreviewedTaskId: defaultUIState.kanbanPreviewedTaskId,
@@ -174,6 +175,10 @@ export function mergeInitialState(initialState?: Partial<DefaultState>): Default
     sessionFailureNotification:
       initialState.sessionFailureNotification ?? defaultState.sessionFailureNotification,
     bottomTerminal: { ...defaultState.bottomTerminal, ...initialState.bottomTerminal },
+    passthroughComposer: {
+      ...defaultState.passthroughComposer,
+      ...initialState.passthroughComposer,
+    },
     sidebarViews: { ...defaultState.sidebarViews, ...initialState.sidebarViews },
     collapsedSubtaskParents:
       initialState.collapsedSubtaskParents ?? defaultState.collapsedSubtaskParents,

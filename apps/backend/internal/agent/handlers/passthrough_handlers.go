@@ -32,10 +32,15 @@ func (h *PassthroughHandlers) RegisterHandlers(d *ws.Dispatcher) {
 	d.RegisterFunc(ws.ActionAgentResize, h.wsAgentResize)
 }
 
-// AgentStdinRequest for agent.stdin action
+// AgentStdinRequest for agent.stdin action.
+// When AppendSubmit is true the backend resolves the agent's SubmitSequence
+// (e.g. "\r") and appends it after Data before writing — used by the buffered
+// composer UI so the agent's TUI treats the payload as one submitted message
+// instead of a half-typed line.
 type AgentStdinRequest struct {
-	SessionID string `json:"session_id"`
-	Data      string `json:"data"`
+	SessionID    string `json:"session_id"`
+	Data         string `json:"data"`
+	AppendSubmit bool   `json:"append_submit,omitempty"`
 }
 
 // wsAgentStdin sends input to the agent process stdin (passthrough mode)
@@ -61,8 +66,20 @@ func (h *PassthroughHandlers) wsAgentStdin(ctx context.Context, msg *ws.Message)
 		return nil, fmt.Errorf("session %s is not in passthrough mode", req.SessionID)
 	}
 
+	data := req.Data
+	if req.AppendSubmit {
+		pt, err := h.lifecycleMgr.ResolvePassthroughConfig(ctx, req.SessionID)
+		if err != nil {
+			h.logger.Warn("failed to resolve passthrough config for submit append; writing data without submit sequence",
+				zap.String("session_id", req.SessionID),
+				zap.Error(err))
+		} else {
+			data += pt.SubmitSequence
+		}
+	}
+
 	// Write to the interactive runner's stdin
-	if err := h.lifecycleMgr.WritePassthroughStdin(ctx, req.SessionID, req.Data); err != nil {
+	if err := h.lifecycleMgr.WritePassthroughStdin(ctx, req.SessionID, data); err != nil {
 		h.logger.Error("failed to write to passthrough stdin",
 			zap.String("session_id", req.SessionID),
 			zap.Error(err))

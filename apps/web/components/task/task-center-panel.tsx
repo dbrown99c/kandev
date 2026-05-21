@@ -16,6 +16,7 @@ import { TaskChatPanel } from "./task-chat-panel";
 import { TaskChangesPanel } from "./task-changes-panel";
 import { FileTabContent } from "./file-tab-content";
 import { PassthroughTerminal } from "./passthrough-terminal";
+import { PassthroughComposer } from "./passthrough-composer";
 import type { OpenFileTab, FileContentResponse } from "@/lib/types/backend";
 import { useAppStore } from "@/components/state-provider";
 import { SessionTabs, type SessionTab } from "@/components/session-tabs";
@@ -524,8 +525,11 @@ function ChatTabContent({
         className="flex flex-col min-h-0 flex-1"
         style={{ minHeight: "200px" }}
       >
-        <div className="flex-1 min-h-0 h-full" style={{ minHeight: "150px" }}>
-          <PassthroughTerminal key={activeTaskId} sessionId={sessionId} mode="agent" />
+        <div className="flex-1 min-h-0 h-full flex flex-col" style={{ minHeight: "150px" }}>
+          <div className="flex-1 min-h-0">
+            <PassthroughTerminal key={activeTaskId} sessionId={sessionId} mode="agent" />
+          </div>
+          <PassthroughComposer sessionId={sessionId} />
         </div>
       </TabsContent>
     );
